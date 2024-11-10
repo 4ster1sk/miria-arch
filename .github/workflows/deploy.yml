@@ -29,11 +29,10 @@ jobs:
 
         - name: Get version
           run: |
-            TAG="$(gh release list --repo ${{ env.GIT_REPO }} -L1 |  awk -F'\t' '{print $3}')"
-            DEB_URL="$(gh release view $TAG --repo ${{ env.GIT_REPO }} --json assets | jq -r '.assets[] | select(.url | endswith("amd64.deb")).url')"
+            DEB_URL="$(gh release view $TAG --repo ${{ env.GIT_REPO }} --json assets | jq -r '.assets[] | select(.url | endswith("amd64.deb")).url' | sed -E 's/%2B/\+/g')"
             echo "CURRENT_VERSION=$(cat PKGBUILD | grep '^pkgver=' | cut -d '=' -f2)" >> $GITHUB_ENV
             echo "DEB_URL=${DEB_URL}" >> $GITHUB_ENV
-            echo "DEB_VERSION=$(echo "${DEB_URL}" | sed -E 's/%2B/\+/g' | sed -E 's/.*miria_([0-9\+\.]+)_amd64.deb/\1/')" >> $GITHUB_ENV
+            echo "DEB_VERSION=$(echo "${DEB_URL}" | sed -E 's/.*miria_([0-9\+\.]+)_amd64.deb/\1/')" >> $GITHUB_ENV
 
         - name: Check version
           if: ${{ env.DEB_VERSION == ''}}
@@ -47,14 +46,16 @@ jobs:
           run: |
             echo "バージョンの変更があります"
             echo "PKGBUILD: v${{env.CURRENT_VERSION}}"
-            echo "DEB: v${{env.DEB_VERSION}} / ${{env.DEB_URL}}"
-
-            HASH=$(curl -sL ${DEB_URL} | sha256sum | awk '{print $1}')
-            echo "HASH: ${HASH}"
-            
+            echo "DEB: v${{env.DEB_VERSION}}"
             sed -i "s/pkgver=.*/pkgver=${DEB_VERSION}/g" PKGBUILD
-            sed -i "s/source=.*/source=(\"${DEB_URL}\")/g" PKGBUILD
+
+            echo "URL: ${{env.DEB_URL}}"
+            sed -i "s|source=.*|source=(\"${{env.DEB_URL}}\")|g" PKGBUILD
+
+            HASH=$(curl -sL ${{env.DEB_URL}} | sha256sum | awk '{print $1}')
+            echo "HASH: ${HASH}"
             sed -i "s/sha256sums=.*/sha256sums=(\"${HASH}\")/g" PKGBUILD
+
             git add -u PKGBUILD
             echo "Bumped version number to $DEB_VERSION" | git commit --file=-
             git push
