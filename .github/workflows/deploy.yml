@@ -12,7 +12,7 @@ env:
   GIT_USER_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
   GIT_USER_NAME: 'github-actions[bot]'
   GH_TOKEN: ${{ github.token }}
-  GIT_REPO: '4ster1sk/miria'
+  GIT_REPO: 'shiosyakeyakini-info/miria'
 
 jobs:
   deploy:
@@ -51,7 +51,7 @@ jobs:
 
             HASH=$(curl -sL ${DEB_URL} | sha256sum | awk '{print $1}')
             echo "HASH: ${HASH}"
-
+            
             sed -i "s/pkgver=.*/pkgver=${DEB_VERSION}/g" PKGBUILD
             sed -i "s/source=.*/source=(\"${DEB_URL}\")/g" PKGBUILD
             sed -i "s/sha256sums=.*/sha256sums=(\"${HASH}\")/g" PKGBUILD
