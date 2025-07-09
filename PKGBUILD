@@ -1,5 +1,5 @@
-# Maintainer: 4sterisk <146138447+4ster1sk@users.noreply.github.com>
-pkgname=miria
+# Maintainer: 4sterisk <4sterisk at ymail dot n e dot  j p>
+pkgname=miria-bin
 pkgver=2.0.2+117
 pkgrel=1
 pkgdesc="Miria is Misskey Client App for iOS, Android and many targets which made by Flutter."
