@@ -1,4 +1,4 @@
-name: デプロイ
+name: デプロイ(miria-bin)
 
 on:
 #  schedule:
@@ -29,31 +29,35 @@ jobs:
 
         - name: Get version
           run: |
-            RELEASE_VERSION="$(gh release view --repo ${{ env.GIT_REPO }} --json tagName | jq -r '.tagName')"
-            echo "RELEASE_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
+            cd ./miria-bin
+            DEB_URL="$(gh release view $TAG --repo ${{ env.GIT_REPO }} --json assets | jq -r '.assets[] | select(.url | endswith("amd64.deb")).url' | sed -E 's/%2B/\+/g')"
             echo "CURRENT_VERSION=$(cat PKGBUILD | grep '^pkgver=' | cut -d '=' -f2)" >> $GITHUB_ENV
+            echo "DEB_URL=${DEB_URL}" >> $GITHUB_ENV
+            echo "DEB_VERSION=$(echo "${DEB_URL}" | sed -E 's/.*miria_([0-9\+\.]+)_amd64.deb/\1/')" >> $GITHUB_ENV
 
         - name: Check version
-          if: ${{ env.RELEASE_VERSION == ''}}
+          if: ${{ env.DEB_VERSION == ''}}
           run: | 
             echo "PKGBUILD: v${{env.CURRENT_VERSION}}"
-            echo "RELEASE: v${{env.RELEASE_VERSION}}"
+            echo "DEB: v${{env.DEB_VERSION}}"
             exit 1
 
         - name: Bump up version
-          if: ${{ env.RELEASE_VERSION != '' && env.CURRENT_VERSION != env.RELEASE_VERSION }}
+          if: ${{ env.DEB_VERSION != '' && env.CURRENT_VERSION != env.DEB_VERSION }}
           run: |
+            cd ./miria-bin
             echo "バージョンの変更があります"
             echo "PKGBUILD: v${{env.CURRENT_VERSION}}"
-            echo "RELEASE: v${{env.RELEASE_VERSION}}"
-            sed -i "s/pkgver=.*/pkgver=${RELEASE_VERSION}/g" PKGBUILD
+            echo "DEB: v${{env.DEB_VERSION}}"
+            sed -i "s/pkgver=.*/pkgver=${DEB_VERSION}/g" PKGBUILD
 
-            source PKGBUILD
+            echo "URL: ${{env.DEB_URL}}"
+            sed -i "s|source=.*|source=(\"${{env.DEB_URL}}\")|g" PKGBUILD
 
-            HASH=$(curl -sL "${source}" | sha256sum | awk '{print $1}')
+            HASH=$(curl -sL ${{env.DEB_URL}} | sha256sum | awk '{print $1}')
             echo "HASH: ${HASH}"
             sed -i "s/sha256sums=.*/sha256sums=(\"${HASH}\")/g" /PKGBUILD
 
             git add -u PKGBUILD
-            echo "Bumped version number to $TAR_VERSION" | git commit --file=-
+            echo "Bumped version number to $DEB_VERSION" | git commit --file=-
             git push
