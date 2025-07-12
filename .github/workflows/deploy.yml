@@ -29,6 +29,7 @@ jobs:
 
         - name: Get version
           run: |
+            cd miria
             RELEASE_VERSION="$(gh release view --repo ${{ env.GIT_REPO }} --json tagName | jq -r '.tagName')"
             echo "RELEASE_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
             echo "CURRENT_VERSION=$(cat PKGBUILD | grep '^pkgver=' | cut -d '=' -f2)" >> $GITHUB_ENV
@@ -43,6 +44,7 @@ jobs:
         - name: Bump up version
           if: ${{ env.RELEASE_VERSION != '' && env.CURRENT_VERSION != env.RELEASE_VERSION }}
           run: |
+            cd miria
             echo "バージョンの変更があります"
             echo "PKGBUILD: v${{env.CURRENT_VERSION}}"
             echo "RELEASE: v${{env.RELEASE_VERSION}}"
